@@ -22,6 +22,10 @@ button.ghost{background:#fff;color:var(--ac)}button:hover{filter:brightness(1.1)
 .row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}.row>*{flex:1}
 .chip{margin-top:10px;padding:6px 8px;background:var(--bg);border-radius:4px;font-size:12.5px;color:var(--mu);min-height:30px}
 .grp{font-size:12px;color:var(--mu);margin:12px 0 4px;font-weight:600}
+.audit-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.audit-heading h2{margin:0}
+button.danger{border-color:var(--no);background:var(--no);white-space:nowrap}
+button:disabled{opacity:.6;cursor:wait}
 .pre{display:block;width:100%;text-align:left;margin:3px 0;background:#fff;color:var(--ink);border:1px solid var(--ln);display:flex;justify-content:space-between;gap:8px}
 .pre b{font-weight:500;font-family:var(--mono);font-size:12px;color:var(--mu)}
 .stamp{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--r);margin-bottom:10px;border-left:6px solid var(--mu);background:var(--bg)}
@@ -56,12 +60,13 @@ pre{margin:0;padding:10px;background:#101a28;color:#d7e2f0;border-radius:4px;fon
 <div class="row"><button id="go">Kirim ke gateway</button></div></section>
 <section style="margin-top:14px"><h2>Keputusan</h2><div class="stamp" id="st"><strong>—</strong><div>Belum ada permintaan.</div></div><pre id="out">{}</pre></section>
 </div>
-<section><h2>Audit log (langsung)</h2><div id="au"><p style="color:var(--mu)">Menunggu permintaan pertama…</p></div></section>
+<section><div class="audit-heading"><h2>Audit log (langsung)</h2><button id="clear-audit" class="danger" type="button">Kosongkan</button></div><div id="au"><p style="color:var(--mu)">Menunggu permintaan pertama…</p></div></section>
 </main>
 <script>
 const GW='http://'+location.hostname+':3000',$=i=>document.getElementById(i);
 const ACC={admin:['admin123','DEV-ADMIN-01'],dosen1:['dosen123','DEV-DSN-01'],dosen2:['dosen123','DEV-DSN-02'],mhs1:['mhs123','DEV-MHS-01'],mhs2:['mhs123','DEV-MHS-02'],mhs3:['mhs123','DEV-MHS-03']};
 const S={};let svc=null;
+let auditTz='Asia/Jakarta';
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const N1='2210631170001',N2='2210631170002';
 // [kelompok | judul, sebagai, token, device, method, path, body, harapan]
@@ -125,8 +130,25 @@ async function login(u,p,d){
   if(r.status===200)S[u]={access:r.data.access_token,refresh:r.data.refresh_token,device:d};
   return r}
 async function audit(){
-  try{const rows=await (await fetch('/demo-api/audit?limit=14')).json();
-   $('au').innerHTML=rows.map(r=>'<div class="a"><span class="t">'+esc(r.ts.slice(11,19))+'</span><span class="d '+esc(r.decision)+'">'+esc(r.decision.toUpperCase())+'</span> <b>'+esc(r.subject)+'</b><br><code>'+esc(r.method)+' '+esc(r.endpoint)+'</code>'+(r.device_id?' <code>'+esc(r.device_id)+'</code>':'')+'<em>'+esc(r.reason)+'</em></div>').join('')||'<p style="color:var(--mu)">Belum ada catatan.</p>'}catch{}}
+  try{
+    const response=await fetch('/demo-api/audit?limit=14');
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const rows=await response.json();
+    $('au').innerHTML=rows.map(r=>'<div class="a"><span class="t">'+esc(new Intl.DateTimeFormat('en-GB',{timeZone:auditTz,hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(r.ts)))+'</span><span class="d '+esc(r.decision)+'">'+esc(r.decision.toUpperCase())+'</span> <b>'+esc(r.subject)+'</b><br><code>'+esc(r.method)+' '+esc(r.endpoint)+'</code>'+(r.device_id?' <code>'+esc(r.device_id)+'</code>':'')+'<em>'+esc(r.reason)+'</em></div>').join('')||'<p style="color:var(--mu)">Belum ada catatan.</p>';
+  }catch(e){$('au').textContent='Gagal memuat audit log: '+e.message}
+}
+async function clearAudit(){
+  if(!window.confirm('Kosongkan semua catatan audit? Data nilai, transkrip, dan akun tidak akan berubah.'))return;
+  const button=$('clear-audit');
+  button.disabled=true;
+  try{
+    const response=await fetch('/demo-api/audit/clear',{method:'POST'});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.reason||result.error||'HTTP '+response.status);
+    await audit();
+  }catch(e){$('au').textContent='Gagal mengosongkan audit log: '+e.message}
+  finally{button.disabled=false}
+}
 function fill(){const [p,d]=ACC[$('acc').value];$('u').value=$('acc').value;$('p').value=p;$('d').value=d;$('as').value=$('acc').value;chip()}
 for(const k in ACC){for(const id of['acc','as'])$(id).add(new Option(k,k))}
 $('as').add(new Option('(tanpa akun)','-'));
@@ -145,6 +167,7 @@ let grp;for(const x of PRE){
   const b=document.createElement('button');b.className='pre';b.innerHTML='<span>'+esc(x[0])+'</span><b>'+x[7]+'</b>';
   b.onclick=()=>{$('as').value=x[1];$('tk').value=x[2];$('dv').value=x[3];$('m').value=x[4];$('path').value=x[5];$('bd').value=x[6];
     send({as:x[1],tk:x[2],dv:x[3],method:x[4],path:x[5],body:x[6]},x[0],x[7])};$('pre').append(b)}
-fetch('/demo-api/info').then(r=>r.json()).then(i=>{$('hrs').textContent='Jam akses ubah/finalisasi '+i.start+'.00–'+i.end+'.00 '+i.tz+' · sekarang pukul '+i.hour+'.xx: '+(i.inHours?'di dalam jam akses':'di luar jam akses')});
-setInterval(chip,1000);audit();
+fetch('/demo-api/info').then(r=>r.json()).then(i=>{auditTz=i.tz;const wilayah=i.tz==='Asia/Jakarta'?'Tasikmalaya (WIB)':i.tz;$('hrs').textContent='Jam akses ubah/finalisasi '+i.start+'.00–'+i.end+'.00 '+wilayah+' · sekarang pukul '+i.hour+'.xx: '+(i.inHours?'di dalam jam akses':'di luar jam akses');audit()}).catch(e=>{$('au').textContent='Gagal memuat konfigurasi waktu: '+e.message;audit()});
+$('clear-audit').onclick=clearAudit;
+setInterval(chip,1000);
 </script></body></html>

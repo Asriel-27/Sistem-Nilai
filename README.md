@@ -68,7 +68,8 @@ dan `npm run start:gateway`.
 ## Frontend demo (opsional)
 
 `npm start` juga menjalankan konsol demo di **http://localhost:3003**. Halaman ini hanya membantu demo; semua
-request tetap dikirim browser langsung ke gateway (port 3000), seperti Postman.
+request tetap dikirim browser langsung ke gateway (port 3000), seperti Postman. Wilayah yang ditampilkan pada jam
+akses adalah **Tasikmalaya (WIB)**; perhitungan tetap memakai zona waktu `Asia/Jakarta`.
 
 - **Sesi login**: pilih akun, ubah password atau device untuk mendemokan penolakan, klik *Login*, *Refresh*, atau *Logout*.
   *Login semua* mengambil token seluruh akun sekaligus.
@@ -77,14 +78,17 @@ request tetap dikirim browser langsung ke gateway (port 3000), seperti Postman.
 - **Permintaan**: kirim endpoint apa pun sebagai akun tertentu dengan token (milik akun, tanpa token, palsu, atau token service)
   dan device (milik akun, kosong, atau device asing).
 - **Keputusan** dan **Audit log (langsung)**: stempel ALLOW/DENY beserta alasannya, dan 14 catatan audit terbaru yang
-  diperbarui setelah setiap klik.
+  diperbarui setelah setiap klik. Waktu audit ditampilkan sesuai `ACCESS_TZ` (default WIB).
+- Tombol **Kosongkan** pada panel audit meminta konfirmasi dan hanya menghapus isi tabel `audit_log`; nilai,
+  transkrip, dan akun tidak diubah. Endpoint khusus demo hanya menerima origin UI yang dikonfigurasi.
 
 Catatan: skenario mengubah data, jadi urutan klik sama seperti blok curl (hentikan aplikasi, `npm run seed`, `npm start`
 untuk mengulang). Skenario 7 (akses langsung ke service dengan gateway secret) tetap lewat curl karena secret
 tidak boleh berada di browser. Untuk demo jam akses, jalankan `ACCESS_HOUR_START=3 ACCESS_HOUR_END=4 npm start`.
 
 Keamanan UI demo: gateway hanya memberi header CORS kepada origin `DEMO_UI_ORIGIN` (bawaan `localhost:3003`),
-dan `scripts/demo-ui.js` hanya membaca `audit_log` (mode read-only). Hentikan dengan Ctrl+C bersama proses lain.
+dan endpoint pengosongan audit pada `scripts/demo-ui.js` menolak origin yang tidak diizinkan. Ini fitur konsol demo,
+bukan endpoint penghapusan audit pada gateway atau bagian dari sistem produksi. Hentikan dengan Ctrl+C bersama proses lain.
 
 ### Konfigurasi (`.env`)
 
