@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Konsol Demo · Sistem Nilai Zero Trust</title>
+<style>
+:root{--bg:#eef1f5;--pn:#fff;--ink:#16202e;--mu:#5b6778;--ln:#d5dbe4;--ac:#1f3a5f;--ok:#0f7b5f;--okb:#e3f4ee;--no:#b3261e;--nob:#fbe7e5;--r:6px;
+--sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;--mono:ui-monospace,"Cascadia Code",Consolas,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans)}
+header{display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline;padding:14px 20px;background:var(--ac);color:#fff}
+header h1{font-size:18px;margin:0;font-weight:650;letter-spacing:.2px}header span{font-size:13px;opacity:.85}
+main{display:grid;grid-template-columns:300px minmax(340px,1fr) minmax(300px,420px);gap:14px;padding:14px 20px;align-items:start}
+@media(max-width:1100px){main{grid-template-columns:1fr 1fr}}@media(max-width:720px){main{grid-template-columns:1fr}}
+@media(min-width:1101px){main>div:nth-child(2),main>section:nth-child(3){position:sticky;top:10px}main>section:nth-child(3){max-height:calc(100vh - 20px);overflow:auto}}
+section{background:var(--pn);border:1px solid var(--ln);border-radius:var(--r);padding:14px}
+h2{font-size:14px;margin:0 0 10px;font-weight:650}
+label{display:block;font-size:12px;color:var(--mu);margin:8px 0 2px}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select,textarea{width:100%;padding:6px 8px;border:1px solid var(--ln);border-radius:4px;background:#fff}
+textarea{font-family:var(--mono);font-size:12.5px;resize:vertical}
+:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+button{padding:6px 11px;border:1px solid var(--ac);background:var(--ac);color:#fff;border-radius:4px;cursor:pointer}
+button.ghost{background:#fff;color:var(--ac)}button:hover{filter:brightness(1.1)}
+.row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}.row>*{flex:1}
+.chip{margin-top:10px;padding:6px 8px;background:var(--bg);border-radius:4px;font-size:12.5px;color:var(--mu);min-height:30px}
+.grp{font-size:12px;color:var(--mu);margin:12px 0 4px;font-weight:600}
+.pre{display:block;width:100%;text-align:left;margin:3px 0;background:#fff;color:var(--ink);border:1px solid var(--ln);display:flex;justify-content:space-between;gap:8px}
+.pre b{font-weight:500;font-family:var(--mono);font-size:12px;color:var(--mu)}
+.stamp{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--r);margin-bottom:10px;border-left:6px solid var(--mu);background:var(--bg)}
+.stamp.ok{background:var(--okb);border-color:var(--ok)}.stamp.no{background:var(--nob);border-color:var(--no)}
+.stamp strong{font-size:26px;letter-spacing:.5px}.stamp.ok strong{color:var(--ok)}.stamp.no strong{color:var(--no)}
+.stamp div{font-size:13px}.stamp small{display:block;color:var(--mu);font-family:var(--mono);font-size:12px}
+pre{margin:0;padding:10px;background:#101a28;color:#d7e2f0;border-radius:4px;font:12.5px/1.45 var(--mono);overflow:auto;max-height:320px;white-space:pre-wrap;word-break:break-word}
+.a{border-bottom:1px solid var(--ln);padding:7px 0;font-size:12.5px}.a:first-child{background:#f3f7fb}
+.a .t{color:var(--mu);font-family:var(--mono);font-size:11.5px}.a .d{font-weight:700;margin-left:6px}.a .d.allow{color:var(--ok)}.a .d.deny{color:var(--no)}
+.a code{font-family:var(--mono);font-size:12px}.a em{display:block;color:var(--mu);font-style:normal}
+</style></head><body>
+<header><h1>Konsol demo · Sistem Nilai Zero Trust</h1><span id="hrs">memuat jam akses…</span></header>
+<main>
+<div>
+<section><h2>Sesi login</h2>
+<label for="acc">Akun</label><select id="acc"></select>
+<label for="u">Username</label><input id="u"><label for="p">Password</label><input id="p">
+<label for="d">X-Device-ID</label><input id="d">
+<div class="row"><button id="bl">Login</button><button id="bla" class="ghost">Login semua</button></div>
+<div class="row"><button id="br" class="ghost">Refresh</button><button id="bo" class="ghost">Logout</button></div>
+<div class="chip" id="chip">Belum login.</div></section>
+<section style="margin-top:14px"><h2>Skenario cepat</h2><div id="pre"></div>
+<p style="font-size:12px;color:var(--mu);margin:10px 0 0">Klik berurutan dari atas. Skenario finalisasi mengubah data; ulangi dengan <code>npm run seed</code>.</p></section>
+</div>
+<div>
+<section><h2>Permintaan</h2>
+<div class="row" style="margin-top:0"><select id="m" style="flex:0 0 84px"><option>GET</option><option>POST</option><option>PUT</option></select><input id="path" value="/nilai" aria-label="Path"></div>
+<div class="row"><div><label for="as">Kirim sebagai</label><select id="as"></select></div>
+<div><label for="tk">Token</label><select id="tk"><option value="own">milik akun</option><option value="none">tanpa token</option><option value="fake">token palsu</option><option value="svc">token service</option></select></div>
+<div><label for="dv">Device</label><select id="dv"><option value="own">milik akun</option><option value="none">tanpa header</option><option value="DEV-ASING">DEV-ASING</option><option value="DEV-MHS-02">DEV-MHS-02</option></select></div></div>
+<label for="bd">Body JSON (opsional)</label><textarea id="bd" rows="2"></textarea>
+<div class="row"><button id="go">Kirim ke gateway</button></div></section>
+<section style="margin-top:14px"><h2>Keputusan</h2><div class="stamp" id="st"><strong>—</strong><div>Belum ada permintaan.</div></div><pre id="out">{}</pre></section>
+</div>
+<section><h2>Audit log (langsung)</h2><div id="au"><p style="color:var(--mu)">Menunggu permintaan pertama…</p></div></section>
+</main>
+<script>
+const GW='http://'+location.hostname+':3000',$=i=>document.getElementById(i);
+const ACC={admin:['admin123','DEV-ADMIN-01'],dosen1:['dosen123','DEV-DSN-01'],dosen2:['dosen123','DEV-DSN-02'],mhs1:['mhs123','DEV-MHS-01'],mhs2:['mhs123','DEV-MHS-02'],mhs3:['mhs123','DEV-MHS-03']};
+const S={};let svc=null;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const N1='2210631170001',N2='2210631170002';
+// [kelompok | judul, sebagai, token, device, method, path, body, harapan]
+const PRE=[
+['Token & konteks'],
+['Tanpa token','mhs1','none','own','GET','/nilai','',401],
+['Token palsu','mhs1','fake','own','GET','/nilai','',401],
+['Device milik user lain','mhs1','own','DEV-MHS-02','GET','/nilai','',403],
+['Tanpa header device','mhs1','own','none','GET','/nilai','',403],
+['Kebijakan per role'],
+['mhs1 lihat nilai sendiri','mhs1','own','own','GET','/nilai','',200],
+['mhs1 minta NIM lain','mhs1','own','own','GET','/nilai?nim='+N2,'',403],
+['dosen1 lihat kelas 1','dosen1','own','own','GET','/nilai?kelas_id=1','',200],
+['dosen1 lihat kelas 2 (IDOR)','dosen1','own','own','GET','/nilai?kelas_id=2','',403],
+['admin lihat nilai','admin','own','own','GET','/nilai','',403],
+['dosen1 ubah nilai 1','dosen1','own','own','PUT','/nilai/1','{"nilai_angka":91}',200],
+['dosen1 ubah nilai 4 (IDOR)','dosen1','own','own','PUT','/nilai/4','{"nilai_angka":100}',403],
+['mhs1 ubah nilai','mhs1','own','own','PUT','/nilai/1','{"nilai_angka":100}',403],
+['Finalisasi & transkrip'],
+['Transkrip mhs1 (kosong)','mhs1','own','own','GET','/transkrip/'+N1,'',200],
+['dosen1 finalisasi kelas 2','dosen1','own','own','POST','/kelas/2/finalisasi','',403],
+['dosen1 finalisasi kelas 1','dosen1','own','own','POST','/kelas/1/finalisasi','',200],
+['Transkrip mhs1 (terisi)','mhs1','own','own','GET','/transkrip/'+N1,'',200],
+['Ubah nilai yang sudah final','dosen1','own','own','PUT','/nilai/1','{"nilai_angka":50}',403],
+['mhs2 lihat transkrip mhs1','mhs2','own','own','GET','/transkrip/'+N1,'',403],
+['admin lihat transkrip mhs1','admin','own','own','GET','/transkrip/'+N1,'',200],
+['Sinkron pakai token admin','admin','own','own','POST','/transkrip/sinkron','{"kelas_id":1,"items":[]}',403],
+['Sinkron pakai token service','admin','svc','none','POST','/transkrip/sinkron','{"kelas_id":1,"items":[]}',400]];
+
+async function call(method,path,body,h){
+  const t=performance.now();
+  try{const r=await fetch(GW+path,{method,headers:{...(body?{'Content-Type':'application/json'}:{}),...h},body:body||undefined});
+    let j;const x=await r.text();try{j=JSON.parse(x)}catch{j=x}
+    return{status:r.status,data:j,ms:Math.round(performance.now()-t)}}
+  catch(e){return{status:0,data:{error:'gateway tidak dapat dihubungi',detail:String(e)},ms:0}}}
+function show(label,r,exp){
+  const ok=r.status>=200&&r.status<300,why=r.data&&r.data.reason?r.data.reason:'';
+  $('st').className='stamp '+(ok?'ok':'no');
+  $('st').innerHTML='<strong>'+(r.status?(ok?'ALLOW':'DENY'):'ERROR')+' '+r.status+'</strong><div>'+esc(why||(ok?'Diizinkan oleh kebijakan':''))+
+   '<small>'+esc(label)+' · '+r.ms+' ms'+(exp?(r.status===exp?' · sesuai harapan ('+exp+')':' · harapan '+exp):'')+'</small></div>';
+  $('out').textContent=typeof r.data==='string'?r.data:JSON.stringify(r.data,null,2);audit()}
+async function svcToken(){
+  if(svc)return svc;
+  const r=await call('POST','/auth/service',JSON.stringify({client_id:'service-nilai',client_secret:'svc-nilai-secret-dev'}));
+  svc=r.data.access_token;return svc}
+async function send(cfg,label,exp){
+  const h={};const a=S[cfg.as];
+  if(cfg.tk==='own'&&a)h.Authorization='Bearer '+a.access;
+  else if(cfg.tk==='fake')h.Authorization='Bearer abc.def.ghi';
+  else if(cfg.tk==='svc')h.Authorization='Bearer '+await svcToken();
+  if(cfg.dv==='own'){if(ACC[cfg.as])h['X-Device-ID']=ACC[cfg.as][1]}else if(cfg.dv!=='none')h['X-Device-ID']=cfg.dv;
+  if(cfg.tk==='own'&&!a){show(label||cfg.path,{status:0,data:{error:'akun '+cfg.as+' belum login',reason:'Klik Login atau Login semua dulu'},ms:0});return}
+  show(label||cfg.method+' '+cfg.path,await call(cfg.method,cfg.path,cfg.body,h),exp)}
+function chip(){
+  const a=S[$('acc').value];if(!a){$('chip').textContent='Belum login.';return}
+  const p=JSON.parse(atob(a.access.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+  const left=Math.max(0,p.exp-Math.floor(Date.now()/1000));
+  $('chip').textContent='role '+p.role+' · sub '+p.sub+' · access token '+(left?Math.floor(left/60)+':'+String(left%60).padStart(2,'0')+' lagi':'kedaluwarsa')}
+async function login(u,p,d){
+  const r=await call('POST','/auth/login',JSON.stringify({username:u,password:p}),{'Content-Type':'application/json','X-Device-ID':d});
+  if(r.status===200)S[u]={access:r.data.access_token,refresh:r.data.refresh_token,device:d};
+  return r}
+async function audit(){
+  try{const rows=await (await fetch('/demo-api/audit?limit=14')).json();
+   $('au').innerHTML=rows.map(r=>'<div class="a"><span class="t">'+esc(r.ts.slice(11,19))+'</span><span class="d '+esc(r.decision)+'">'+esc(r.decision.toUpperCase())+'</span> <b>'+esc(r.subject)+'</b><br><code>'+esc(r.method)+' '+esc(r.endpoint)+'</code>'+(r.device_id?' <code>'+esc(r.device_id)+'</code>':'')+'<em>'+esc(r.reason)+'</em></div>').join('')||'<p style="color:var(--mu)">Belum ada catatan.</p>'}catch{}}
+function fill(){const [p,d]=ACC[$('acc').value];$('u').value=$('acc').value;$('p').value=p;$('d').value=d;$('as').value=$('acc').value;chip()}
+for(const k in ACC){for(const id of['acc','as'])$(id).add(new Option(k,k))}
+$('as').add(new Option('(tanpa akun)','-'));
+$('acc').onchange=fill;fill();
+$('bl').onclick=async()=>{const r=await login($('u').value,$('p').value,$('d').value);show('POST /auth/login',r);chip()};
+$('bla').onclick=async()=>{let n=0;for(const k in ACC)if((await login(k,ACC[k][0],ACC[k][1])).status===200)n++;
+  show('Login semua akun',{status:n?200:0,data:{reason:n+' dari '+Object.keys(ACC).length+' akun berhasil login'},ms:0});chip()};
+$('br').onclick=async()=>{const a=S[$('acc').value];if(!a)return show('refresh',{status:0,data:{reason:'Login dulu'},ms:0});
+  const r=await call('POST','/auth/refresh',JSON.stringify({refresh_token:a.refresh}),{'Content-Type':'application/json','X-Device-ID':$('d').value});
+  if(r.status===200)a.access=r.data.access_token;show('POST /auth/refresh',r);chip()};
+$('bo').onclick=async()=>{const a=S[$('acc').value];if(!a)return show('logout',{status:0,data:{reason:'Login dulu'},ms:0});
+  show('POST /auth/logout',await call('POST','/auth/logout',JSON.stringify({refresh_token:a.refresh}),{'Content-Type':'application/json'}))};
+$('go').onclick=()=>send({as:$('as').value,tk:$('tk').value,dv:$('dv').value,method:$('m').value,path:$('path').value,body:$('bd').value.trim()});
+let grp;for(const x of PRE){
+  if(x.length===1){grp=document.createElement('div');grp.className='grp';grp.textContent=x[0];$('pre').append(grp);continue}
+  const b=document.createElement('button');b.className='pre';b.innerHTML='<span>'+esc(x[0])+'</span><b>'+x[7]+'</b>';
+  b.onclick=()=>{$('as').value=x[1];$('tk').value=x[2];$('dv').value=x[3];$('m').value=x[4];$('path').value=x[5];$('bd').value=x[6];
+    send({as:x[1],tk:x[2],dv:x[3],method:x[4],path:x[5],body:x[6]},x[0],x[7])};$('pre').append(b)}
+fetch('/demo-api/info').then(r=>r.json()).then(i=>{$('hrs').textContent='Jam akses ubah/finalisasi '+i.start+'.00–'+i.end+'.00 '+i.tz+' · sekarang pukul '+i.hour+'.xx: '+(i.inHours?'di dalam jam akses':'di luar jam akses')});
+setInterval(chip,1000);audit();
+</script></body></html>

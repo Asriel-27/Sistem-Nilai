@@ -1,0 +1,30 @@
+{
+  "name": "sistem-nilai-zero-trust",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tugas Praktikum Zero Trust - Keamanan Informasi (Informatika UNSIL)",
+  "workspaces": [
+    "gateway",
+    "service-nilai",
+    "service-transkrip"
+  ],
+  "scripts": {
+    "seed": "node db/seed.js",
+    "start": "node scripts/start-all.js",
+    "audit": "node scripts/audit.js",
+    "demo-ui": "node scripts/demo-ui.js",
+    "start:gateway": "npm run start -w gateway",
+    "start:nilai": "npm run start -w service-nilai",
+    "start:transkrip": "npm run start -w service-transkrip"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
